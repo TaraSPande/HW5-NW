@@ -23,7 +23,7 @@ See this [video](https://www.youtube.com/watch?v=NqYY0PJbD3s) for a walk through
 * [TODO] Complete the `test_nw_backtrace` function in test/test_align.py to test for proper backtracing in your `NeedlemanWunsch._backtrace` method.
 
 Note: To check that you have correclty implemented your algorithm the following information is provided
-* test_seq3.fa and test_seq4.fa should have an alignment score of **17** and an alignment of:
+* test_seq3.fa and test_seq4.fa should have an alignment score of **18** and an alignment of:
 
 	MAVHQLIRRP
 	
@@ -32,8 +32,8 @@ Note: To check that you have correclty implemented your algorithm the following 
 
 [TODO] Ensure that it runs pytest
 
-### Pip Installable
-* [TODO] make .toml file with flit and ensure that your package can be installed with pip
+~~### Pip Installable~~
+~~* [TODO] make .toml file with flit and ensure that your package can be installed with pip~~
 
 # Getting Started
 To get started you will need to fork this repository onto your own Github account. Work on the codebase from your own repo and commit changes. 

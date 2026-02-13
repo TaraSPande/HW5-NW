@@ -100,8 +100,6 @@ class NeedlemanWunsch:
 
     def align(self, seqA: str, seqB: str) -> Tuple[float, str, str]:
         """
-        TODO
-        
         This function performs global sequence alignment of two strings
         using the Needleman-Wunsch Algorithm
         
@@ -126,20 +124,67 @@ class NeedlemanWunsch:
         self._seqA = seqA
         self._seqB = seqB
         
-        # TODO: Initialize matrix private attributes for use in alignment
+        # Initialize matrix private attributes for use in alignment
         # create matrices for alignment scores, gaps, and backtracing
-        pass
+        n = len(seqA)
+        m = len(seqB) 
 
+        self._align_matrix = np.zeros((n + 1, m + 1))   #match/mismatch
+        self._gapA_matrix = np.zeros((n + 1, m + 1))    #gap in seqB (vertical)
+        self._gapB_matrix = np.zeros((n + 1, m + 1))    #gap in seqA (horizontal)
+
+        self._back = np.zeros((n + 1, m + 1), dtype=int)    #backtrace matrices
+        self._back_A = np.zeros((n + 1, m + 1), dtype=int)
+        self._back_B = np.zeros((n + 1, m + 1), dtype=int)
+
+        for i in range(1, n + 1):   #initialize first column in score matrices (seqA to all gap)
+            self._align_matrix[i, 0] = self.gap_open + (i - 1) * self.gap_extend #affine gap formula
+            self._gapA_matrix[i, 0] = self._align_matrix[i, 0]
+            self._gapB_matrix[i, 0] = float('-inf')
+            self._back[i, 0] = 1 
+
+        for j in range(1, m + 1): #initialize first row in score matrices (seqB to all gap)
+            self._align_matrix[0, j] = self.gap_open + (j - 1) * self.gap_extend #affine gap formula
+            self._gapB_matrix[0, j] = self._align_matrix[0, j]
+            self._gapA_matrix[0, j] = float('-inf')
+            self._back[0, j] = 2
         
-        # TODO: Implement global alignment here
-        pass      		
+        for i in range(1, n + 1):   #dynamic programming!
+            for j in range(1, m + 1):
+                sub_score = self.sub_dict[(seqA[i - 1], seqB[j - 1])]   #get score of two residues
+
+                #DIAGONAL JUMP
+                diag = self._align_matrix[i - 1, j - 1] + sub_score     #match or mismatch
+
+                #VERTICAL GAP:
+                gapA_extend = self._gapA_matrix[i - 1, j] + self.gap_extend #extend existing gap
+                gapA_open = self._align_matrix[i - 1, j] + self.gap_open    #open new gap
+                self._gapA_matrix[i, j] = max(gapA_extend, gapA_open)       #take best scoring of options
+                self._back_A[i, j] = 1 if gapA_extend >= gapA_open else 0   #save choice
+
+                #HORIZONTAL GAP:
+                gapB_extend = self._gapB_matrix[i, j - 1] + self.gap_extend #extend existing gap
+                gapB_open = self._align_matrix[i, j - 1] + self.gap_open    #open new gap
+                self._gapB_matrix[i, j] = max(gapB_extend, gapB_open)       #take best scoring of options
+                self._back_B[i, j] = 2 if gapB_extend >= gapB_open else 0   #save choice
+
+                max_score = max(diag, self._gapA_matrix[i, j], self._gapB_matrix[i, j]) #choose best state overall
+                self._align_matrix[i, j] = max_score
+
+                #BUILD TRACEBACK
+                if max_score == diag:
+                    self._back[i, j] = 0    #diagonal (match/mismatch)
+                elif max_score == self._gapA_matrix[i, j]:
+                    self._back[i, j] = 1    #vertical (gap in seqB)
+                else:
+                    self._back[i, j] = 2    #horizontal (gap in seqA)
+
+        self.alignment_score = self._align_matrix[n, m]   		#save final alignment score
         		    
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
         """
-        TODO
-        
         This function traces back through the back matrix created with the
         align function in order to return the final alignment score and strings.
         
@@ -150,9 +195,30 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
+        i = len(self._seqA)     #start at end of seqA and seqB
+        j = len(self._seqB)
+        alignA = []
+        alignB = []
 
-        return (self.alignment_score, self.seqA_align, self.seqB_align)
+        while i > 0 or j > 0:   #stop when both seqs finished
+            if i > 0 and j > 0 and self._back[i, j] == 0: #diagonal (match/mismatch)
+                alignA.append(self._seqA[i - 1])    #add residue
+                alignB.append(self._seqB[j - 1])    #add residue
+                i -= 1
+                j -= 1
+            elif i > 0 and (j == 0 or self._back[i, j] == 1): #vertical (gap in seqB)
+                alignA.append(self._seqA[i - 1])
+                alignB.append('-')
+                i -= 1
+            else:                                       #horizontal (gap in seqA)
+                alignA.append('-')
+                alignB.append(self._seqB[j - 1])
+                j -= 1
+
+        self.seqA_align = ''.join(reversed(alignA))     #reverse strings (since started from back)
+        self.seqB_align = ''.join(reversed(alignB))
+
+        return (self.alignment_score, self.seqA_align, self.seqB_align) #return backtrace alignment with max_score
 
 
 def read_fasta(fasta_file: str) -> Tuple[str, str]:
